@@ -3,7 +3,14 @@
 Все изменения в библиотеке [rtpcscbridge](https://search.maven.org/artifact/ru.rutoken.rtpcscbridge/rtpcscbridge) будут
 публиковаться в этом файле.
 
-## [1.1.0] - [unreleased]
+## [1.1.1] - 07-12-2023
+
+### Изменено
+
+- Ссылки на Java API в Javadoc теперь ведут на https://developer.android.com/reference,
+ так как docs.oracle.com больше недоступен в России.
+
+## [1.1.0] - 01-12-2023
 
 ### Изменено
 
