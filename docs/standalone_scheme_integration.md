@@ -41,7 +41,7 @@ public class App extends Application {
 5. `RtTransport.finalize(context)` - завершает работу встраивания; рекомендуется вызывать в методе **Activity.onStop()** или для сервиса - внутри **Service.onDestroy()**.
 
 ### Автоматический API встраивания
-Для работы с Рутокенами в автоматическом режиме существует интерфейс **ru.rutoken.rttransport.RtTransportExtension**, инстанс которого можно получить из метода `RtPcscBridge.getTransportExtension()`. Для включения режима необходимо вызвать метод `attachToLifecycle`, например, внутри класса-наследника Application:
+Для работы с Рутокенами в автоматическом режиме существует интерфейс **ru.rutoken.rttransport.RtTransportExtension**, инстанс которого можно получить из метода `RtPcscBridge.getTransportExtension()`. Для включения режима необходимо вызвать метод `attachToLifecycle` внутри класса-наследника Application:
 ```java
 public class App extends Application {
     @Override
@@ -53,6 +53,8 @@ public class App extends Application {
 }
 ```
 В параметры, помимо Application, можно передать флаг **useAutoNfcHandling** для включения/выключения автоматической обработки Рутокенов с NFC. По умолчанию флаг равен **true**.
+
+> :warning: Важно: метод `attachToLifecycle` должен быть вызван именно в `Application.onCreate()`. Если метод будет вызван позднее, например, внутри коллбеков жизненного цикла Activity, то встраивание может не получить сигнал о переходе приложения в нужное состояние и не сможет активировать работу с NFC.
 
 > :warning: Важно: автоматическая обработка Рутокенов с NFC будет происходить только на тех Activity, которые реализуют интерфейс [OnNewIntentProvider](https://developer.android.com/reference/androidx/core/app/OnNewIntentProvider).
 
