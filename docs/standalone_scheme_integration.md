@@ -9,6 +9,8 @@ implementation 'ru.rutoken.rtpcscbridge:rtpcscbridge:1.0.0'
 
 Минимальная поддерживая версия Android - 7.0 (API Level 24).
 
+> :warning: Для корректной работы встраивания на Android 7.0 и 7.1 (при условии, что минимальная версия вашего приложения меньше API Level 26) необходимо включить [desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring).
+
 Входная точка данного встраивания – класс **ru.rutoken.rtpcscbridge.RtPcscBridge**, который необходим для инициализации библиотеки. Для каждого процесса приложения, в котором будет происходить взаимодействие с Рутокенами, необходимо вызвать статический метод `setAppContext` и передать ему в качестве параметра Android application context. Типичное место вызова этого метода - внутри **onCreate()** у класса-наследника Application:
 ```java
 public class App extends Application {
