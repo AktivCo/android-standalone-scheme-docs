@@ -2,7 +2,7 @@
 ## Настройка проекта
 Для встраивания необходимо добавить в зависимости библиотеку rtpcscbridge (в случае использования системы сборки Gradle):
 ```groovy
-implementation 'ru.rutoken.rtpcscbridge:rtpcscbridge:1.0.0'
+implementation 'ru.rutoken.rtpcscbridge:rtpcscbridge:1.2.0'
 ```
 
 Библиотека доступна в [репозитории Maven Central](https://search.maven.org/artifact/ru.rutoken.rtpcscbridge/rtpcscbridge).
@@ -25,6 +25,8 @@ public class App extends Application {
 Данное встраивание поддерживает два режима использования: **ручной** и **автоматический**. **Ручной** режим предполагает явные вызовы методов инициализации и финализации библиотеки, а также прямое управление отслеживанием Рутокен с NFC. Всё это даёт полный контроль над поведением библиотеки со стороны приложения. Например, можно активировать встраивание только для некоторых из существующих в приложении Activity.
 При **автоматическом** режиме встраивание становится доступным для всех существующих в приложении Activity, реализующих интерфейс [OnNewIntentProvider](https://developer.android.com/reference/androidx/core/app/OnNewIntentProvider) (методы ручного API вызываются автоматически на определенных этапах жизненного цикла приложения, см. [диаграмму](#диаграмма-жизненного-цикла-rtTransport)).
 
+Для каждого из режимов работы во время инициализации библиотеки существует возможность конфигурации набора поддерживаемых физических интерфейсов Рутокенов (USB, NFC, Bluetooth, SPI) с помощью класса **ru.rutoken.rttransport.InitParameters**. Данный параметр можно сконструировать с помощью класса `InitParameters.Builder`, в метод `setEnabledTokenInterfaces` которого необходимо передать как минимум один физический интерфейс. По умолчанию (без передачи данного параметра в соответствующие методы инициализации встраивания) библиотека обнаруживает только USB и NFC токены.
+
 Независимо от выбранного режима работы, встраивание позволяет отслеживать подключение и отключение устройств Рутокен с помощью интерфейса **ru.rutoken.rttransport.RtTransport.PcscReaderObserver**. Отслеживание устройств будет особенно полезно при работе через КриптоПро CSP.
 
 Включить отслеживание возможно в любой момент работы со встраиванием с помощью интерфейса `ru.rutoken.rttransport.RtTransport` и метода `addPcscReaderObserver()`, при этом подписчик получит события о всех подключенных к устройству токенах - для каждого токена вызовется метод `RtTransport.PcscReaderObserver.onReaderAdded(reader)`.
@@ -36,7 +38,7 @@ public class App extends Application {
 ### Ручной API встраивания
 Для работы с Рутокенами в ручном режиме существует интерфейс **ru.rutoken.rttransport.RtTransport**, инстанс которого можно получить с помощью метода `RtPcscBridge.getTransport()`.
 Рекомендуемый порядок вызовов API:
-1. `RtTransport.initialize(context)` - инициализирует встраивание. Библиотека начинает отслеживать подключение и отключение Рутокенов (кроме подключений по NFC) и позволяет настроить дальнейшую работу с NFC; рекомендуется вызывать в методе **Activity.onStart()** или для сервиса - внутри **Service.onCreate()**.
+1. `RtTransport.initialize(context)` - инициализирует встраивание. Библиотека начинает отслеживать подключение и отключение Рутокенов (кроме подключений по NFC) и позволяет настроить дальнейшую работу с NFC; рекомендуется вызывать в методе **Activity.onStart()** или для сервиса - внутри **Service.onCreate()**. Также в данный метод можно передать опциональный параметр `ru.rutoken.rttransport.InitParameters` с возможностью конфигурации поддерживаемых физических интерфейсов Рутокенов.
 2. `RtTransport.enableNfcForegroundDispatch(activity)` - включает [NFC foreground dispatching](https://developer.android.com/guide/topics/connectivity/nfc/advanced-nfc#foreground-dispatch) для данной Activity. Как и в случае с <a href="https://developer.android.com/reference/android/nfc/NfcAdapter#enableForegroundDispatch(android.app.Activity,%20android.app.PendingIntent,%20android.content.IntentFilter[],%20java.lang.String[][])">NfcAdapter.enableForegroundDispatch</a>, вызов данного метода должен происходить строго из Main потока в методе **Activity.onResume()**.
 3. `RtTransport.handleNfcIntent(intent)` - обрабатывает NFC интент, полученный при прикладывании токена, игнорируя при этом интенты от не-Рутокен устройств. Этот метод необходим для дальнейшей установки соединения с токеном и должен быть обязательно вызван при получении каждого NFC интента, например, внутри **Activity.onNewIntent()**. 
 4. `RtTransport.disableNfcForegroundDispatch(activity)` - выключает NFC foreground dispatching для данной Activity. Вызов данного метода должен происходить строго из Main потока в методе **Activity.onPause()**.
@@ -54,7 +56,9 @@ public class App extends Application {
     }
 }
 ```
-В параметры, помимо Application, можно передать флаг **useAutoNfcHandling** для включения/выключения автоматической обработки Рутокенов с NFC. По умолчанию флаг равен **true**.
+В параметры, помимо Application, можно передать следующее:
+1. флаг **useAutoNfcHandling** для включения/выключения автоматической обработки Рутокенов с NFC (по умолчанию флаг равен **true**);
+2. параметры инициализации `ru.rutoken.rttransport.InitParameters`, в которых можно сконфигурировать набор поддерживаемых физических интерфейсов Рутокенов (по умолчанию поддерживаются NFC и USB).
 
 > :warning: Важно: метод `attachToLifecycle` должен быть вызван именно в `Application.onCreate()`. Если метод будет вызван позднее, например, внутри коллбеков жизненного цикла Activity, то встраивание может не получить сигнал о переходе приложения в нужное состояние и не сможет активировать работу с NFC.
 
@@ -66,7 +70,7 @@ public class App extends Application {
 Жизненный цикл автоматического API непосредственно связан с жизненными циклами всех Activity приложения. 
 Вызов метода `RtTransportExtension.attachToLifecycle(app)` инициирует следующие операции внутри библиотеки:
 - Добавление подписчика **ru.rutoken.rttransport.RtTransportProcessLifecycleObserver** на [жизненный цикл процесса приложения](https://developer.android.com/reference/androidx/lifecycle/ProcessLifecycleOwner#getLifecycle()).
-- Добавление **ru.rutoken.rttransport.RtTransportNfcLifecycleCallbacks** в качестве [Activity Lifecycle callbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks) для данного приложения *при условии, что параметр useAutoNfcHandling = true и NFC адаптер физически существует*.
+- Добавление **ru.rutoken.rttransport.RtTransportNfcLifecycleCallbacks** в качестве [Activity Lifecycle callbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks) для данного приложения *при условии, что параметр useAutoNfcHandling = true, NFC адаптер физически существует и интерфейс ru.rutoken.rttransport.TokenInterface.NFC включен через параметры ru.rutoken.rttransport.InitParameters*.
 
 Ниже представлена диаграмма для иллюстрации зависимости поведения **RtTransport** от жизненного цикла Activity при автоматическом режиме встраивания (автоуправление NFC включено).
 #### Диаграмма жизненного цикла RtTransport
@@ -87,15 +91,26 @@ public class App extends Application {
 
 ## Требования для встраивания в зависимости от физического интерфейса токена
 ### USB
-Для работы по интерфейсу USB в ручном режиме достаточно вызвать методы `initialize` (п. 1) и `finalize` (п. 5). В автоматическом режиме USB устройства будут обработаны без каких-либо других действий от пользователя библиотеки. При этом пользователю конечного приложения будет показан системный диалог с запросом разрешения на использование USB устройства при каждом подключении токена.  
+Для работы по интерфейсу USB в ручном режиме достаточно вызвать методы `initialize` (п. 1) и `finalize` (п. 5). В автоматическом режиме USB устройства будут обработаны без каких-либо других действий от пользователя библиотеки. При этом пользователю конечного приложения будет показан системный диалог с запросом разрешения на использование USB устройства при каждом подключении токена.
+
 Дополнительных runtime permission получать не требуется.
+
+В методы инициализации обоих режимов встраивания **необязательно** явно передавать параметр `ru.rutoken.rttransport.InitParameters` с поддержкой физического интерфейса `ru.rutoken.rttransport.TokenInterface.USB`, так как он включен по умолчанию.
+
 ### Bluetooth
-Для работы по интерфейсу Bluetooth в ручном режиме достаточно вызвать методы `initialize` (п. 1) и `finalize` (п. 5).
+Для работы по интерфейсу Bluetooth в методы инициализации обоих режимов встраивания **необходимо** передать параметр `ru.rutoken.rttransport.InitParameters` с поддержкой физического интерфейса `ru.rutoken.rttransport.TokenInterface.BLUETOOTH`.  
+
+В ручном режиме достаточно вызвать методы `initialize` (п. 1) и `finalize` (п. 5).
 На Android 12+ требуется самостоятельно запросить permission [BLUETOOTH_CONNECT](https://developer.android.com/reference/android/Manifest.permission#BLUETOOTH_CONNECT).
 Для работы в автоматическом режиме данное разрешение также необходимо.
+
 ### NFC
+
 Для работы по интерфейсу NFC в ручном режиме необходимо вызвать все описанные выше методы (пункты 1-5). Для автоматического режима необходимо передать флаг **useAutoNfcHandling=true** в метод `attachToLifecycle`, либо использовать default метод `attachToLifecycle(application)`, который по умолчанию включает авто-обработку NFC.
+
 Дополнительных runtime permissions получать не требуется.
+
+В методы инициализации обоих режимов встраивания **необязательно** явно передавать параметр `ru.rutoken.rttransport.InitParameters` с поддержкой физического интерфейса `ru.rutoken.rttransport.TokenInterface.NFC`, так как он включен по умолчанию.
 
 ## Работа встраивания в многопроцессных приложениях
 В случае, если встраивание выполняется только в одном из нескольких процессов приложения, поведение библиотеки не будет отличаться от стандартного.
