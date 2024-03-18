@@ -3,7 +3,7 @@
 Все изменения в библиотеке [rtpcscbridge](https://search.maven.org/artifact/ru.rutoken.rtpcscbridge/rtpcscbridge) будут
 публиковаться в этом файле.
 
-## [1.2.0] - [unreleased]
+## [1.2.0] - 18-03-2024
 
 ### Добавлено
 
